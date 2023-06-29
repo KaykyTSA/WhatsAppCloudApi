@@ -1,13 +1,28 @@
 import express, {Request, Response} from "express";
+import  * as ff from "@google-cloud/functions-framework"
 
-const app = express()
-const port = process.env.PORT || 3000
-app.use(express.json())
-app.get("/", (req: Request, res: Response) => {
-    const nome = req.body.nome
-    res.status(200).json({'nome': `olá ${nome}`})
-})
+const app = express();
 
-app.listen(port, () => {
-    console.log(`Server up and running in url: http://localhost:${port}`)
-})
+app.use(express.json(), express.urlencoded({extended: false}))
+
+app.get('/webhook', function(req: Request, res: Response) {
+    if (
+      req.query['hub.mode'] == 'subscribe' &&
+      req.query['hub.verify_token'] == 'TESTE'
+    ) {
+      res.send(req.query['hub.challenge']);
+    } else {
+      res.status(400).send("deu ruim");
+    }
+});
+  
+app.post("/webhook", function (req: Request, res: Response) {
+
+    const messages = JSON.stringify(req.body.entry[0].changes[0].value.messages[0].text.body)
+    const name = JSON.stringify(req.body.entry[0].changes[0].value.contacts[0].profile.name)
+    console.log(`${name}: ` + messages);
+
+    res.status(200);
+});
+
+ff.http("app", app)
